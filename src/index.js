@@ -20,15 +20,16 @@ class App {
 
         const createScene = () => {
             let scene = new Scene(engine);
-            showWorldAxis(scene, 5);
+            showWorldAxis(scene, 2, new Vector3(-9,0,8));
             let deviceSourceManager = new DeviceSourceManager(scene.getEngine());
 
             // camera and light
-            let camera = new ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 3, 20, Vector3.Zero(), scene);
+            let camera = new ArcRotateCamera("Camera", - Math.PI / 2, Math.PI / 3, 20, Vector3.Zero(), scene);
             camera.attachControl(canvas, true);   
            
             let light = new HemisphericLight("light", new Vector3(1, 1, 0), scene);
     
+            
             
            /* add the ground */
             let ground = MeshBuilder.CreateGround("ground", {width: 20, height: 20}, scene);
@@ -75,28 +76,40 @@ class App {
                 // Vector3 (inputX, 0, inputZ)
                 // clamp magnitude of movement vector (e.g. you don't want additive movement in diagonal direction)
                 // person.position is moved (movement vector * scene.deltaTime * playerSpeed)
-                
 
                     let delta = scene.deltaTime;
                     let piv = playerInputVector(deviceSourceManager);
                     
                     if (piv.length() == 0){
+                        // no input detected
                         return;
                     }
-
+     
+                    
                     let inputVector = piv.normalize();
 
-                    let movementVector = inputVector.scaleInPlace(scaleFactor * delta);
+                    let cameraVector = camera.getDirection(inputVector);
+
+                    // zero the y direction as this is not player controlled
+                    cameraVector.y = 0;
+
+                    // normalize the vector so that speed is not faster on diagonal movement
+                    let cameraVectorNorm = cameraVector.normalize();
+
+                    //let movementVector = inputVector.scaleInPlace(scaleFactor * delta);
+                    let movementVector = cameraVectorNorm.scaleInPlace(scaleFactor * delta);
                     person.moveWithCollisions(movementVector);
                     
                     /* handle rotation change */
 
                     /* calculate the angle between the positive z axis and the vector of movement 
                        rotate the player in that direction */
-                    let targetAngle = Math.atan2(inputVector.x, inputVector.z);
+                    /* this works because the angle Math.atan2(inputVector.z, inputVector.x) is the angle between x axis and (x,z) 
+                       and switching the arguments to Math.atan2(inputVector.x, inputVector.z) gives the angle between the z axis and (z,x)
+                       these angles are the same as (x, z) is reflective symmetrical to (z,x) along x=z. ??????????? */
+                    let targetAngle = Math.atan2(cameraVectorNorm.x, cameraVectorNorm.z);
                     person.rotation.y = (targetAngle);
-                
-                          
+                                            
             });
 
             return scene;

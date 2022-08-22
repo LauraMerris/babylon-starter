@@ -19,29 +19,45 @@ class App {
         var engine = new Engine(canvas, true);
 
         const createScene = () => {
+            let gravity = new Vector3(0, -0.1, 0);
+            let scaleFactor = 0.005; //speed
+
             let scene = new Scene(engine);
-            showWorldAxis(scene, 2, new Vector3(-9,0,8));
+            //showWorldAxis(scene, 2, new Vector3(-9,0,8));
             let deviceSourceManager = new DeviceSourceManager(scene.getEngine());
 
             // camera and light
-            let camera = new ArcRotateCamera("Camera", - Math.PI / 2, Math.PI / 3, 20, Vector3.Zero(), scene);
+            let camera = new ArcRotateCamera("Camera", 0, Math.PI / 3, 20, Vector3.Zero(), scene);
             camera.attachControl(canvas, true);   
            
             let light = new HemisphericLight("light", new Vector3(1, 1, 0), scene);
-    
             
-            
+           
            /* add the ground */
             let ground = MeshBuilder.CreateGround("ground", {width: 20, height: 20}, scene);
+            //let ground = MeshBuilder.CreateGroundFromHeightMap("ground", "https://assets.babylonjs.com/textures/heightMap.png", {width:20, height:20, subdivisions:10,maxHeight:3}); 
+            ground.checkCollisions = true;
 
+             /* add an elevated platform */
+             
+             const platform = MeshBuilder.CreateBox("platform", {width:4, height:4, depth:1}, scene);
+             platform.checkCollisions = true;
+             platform.position.x = -4;
+             platform.rotation.x = Math.PI / 4;
+             platform.position.y = 1;
+ 
+             const platformMat = new StandardMaterial("platformMat");
+             platformMat.diffuseColor = new Color3(0,1,1);
+             platform.material = platformMat;
+            
 
             /* create player character */
-            const box = MeshBuilder.CreateBox("box", {width:0.5, height:1, depth:0.5}, scene);
+            const capsule = MeshBuilder.CreateCapsule("capsule", {height:1, radius:0.25}, scene);
             const nose = MeshBuilder.CreateBox("nose", {width:0.1, height:0.1, depth:0.1}, scene);
 
-            const boxMat = new StandardMaterial("boxMat");
-            boxMat.diffuseColor = new Color3(1, 0, 0);
-            box.material = boxMat;
+            const capsuleMat = new StandardMaterial("capMat");
+            capsuleMat.diffuseColor = new Color3(1,0,0);
+            capsuleMat.material = capsuleMat;
 
             const noseMat = new StandardMaterial("noseMat");
             noseMat.diffuseColor = new Color3(0, 0, 1);
@@ -49,11 +65,19 @@ class App {
 
             nose.position.y = 0.7;
             nose.position.z = 0.3;
-            box.position.y = 0.5;
+            capsule.position.y = 0.5;
 
-            const person = Mesh.MergeMeshes([box,nose], true, false, null, false, true);
+            const person = Mesh.MergeMeshes([capsule,nose], true, false, null, false, true);
 
-            let scaleFactor = 0.005;
+
+            /* initial positions */
+            /* the ellipsoid is the collider on the person - this needs to match the boundary of the shape so that 
+            the person doesn't hover above surfaces, e.g. on a slope
+            By default the ellipsoid is centred on the bottom of the person mesh */
+            person.position = new Vector3(-9,0,9);
+            person.ellipsoid = new Vector3(0.25, 0.5, 0.25);
+            person.ellipsoidOffset = new Vector3(0, 0.5, 0);
+
 
             // entity person
             // components: hasMesh, moveable (speed), playerControlled
@@ -78,17 +102,18 @@ class App {
                 // person.position is moved (movement vector * scene.deltaTime * playerSpeed)
 
                     let delta = scene.deltaTime;
-                    let piv = playerInputVector(deviceSourceManager);
+                    let piv = playerInputVector(deviceSourceManager); // input vector in x/z plane
                     
+                    /*
                     if (piv.length() == 0){
                         // no input detected
                         return;
-                    }
-     
+                    }*/
                     
+     
                     let inputVector = piv.normalize();
 
-                    let cameraVector = camera.getDirection(inputVector);
+                    let cameraVector = camera.getDirection(piv);
 
                     // zero the y direction as this is not player controlled
                     cameraVector.y = 0;
@@ -98,7 +123,8 @@ class App {
 
                     //let movementVector = inputVector.scaleInPlace(scaleFactor * delta);
                     let movementVector = cameraVectorNorm.scaleInPlace(scaleFactor * delta);
-                    person.moveWithCollisions(movementVector);
+                    //let movementVector = inputVector.scaleInPlace(scaleFactor * delta);
+                    person.moveWithCollisions(movementVector.add(gravity));
                     
                     /* handle rotation change */
 

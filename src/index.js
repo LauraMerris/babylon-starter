@@ -5,6 +5,7 @@ import { Engine, Scene, ArcRotateCamera, DynamicTexture, Quaternion, Vector3, He
 import './style.css';
 import { showWorldAxis } from "../utilities/axes";
 import { playerInputVector} from "./inputSystem";
+import * as earcut from "earcut";
 
 class App {
     constructor() {
@@ -28,6 +29,7 @@ class App {
 
             // camera and light
             let camera = new ArcRotateCamera("Camera", -Math.PI /2, Math.PI / 3, 20, Vector3.Zero(), scene);
+            camera.upperBetaLimit = Math.PI / 2;
             camera.attachControl(canvas, true);   
            
             let light = new HemisphericLight("light", new Vector3(1, 1, 0), scene);
@@ -67,20 +69,6 @@ class App {
             boundary3.checkCollisions = true;
             boundary4.checkCollisions = true;
 
-             /* add an elevated platform */
-             
-             /*
-             const platform = MeshBuilder.CreateBox("platform", {width:4, height:4, depth:1}, scene);
-             platform.checkCollisions = true;
-             platform.position.x = -4;
-             platform.rotation.x = Math.PI / 4;
-             platform.position.y = 1;
- 
-             const platformMat = new StandardMaterial("platformMat");
-             platformMat.diffuseColor = new Color3(0,1,1);
-             platform.material = platformMat;
-            */
-
             /* create player character */
             const capsule = MeshBuilder.CreateCapsule("capsule", {height:1, radius:0.25}, scene);
             const nose = MeshBuilder.CreateBox("nose", {width:0.1, height:0.1, depth:0.1}, scene);
@@ -97,10 +85,18 @@ class App {
             nose.position.z = 0.3;
             capsule.position.y = 0.5;
 
+            /* player position
+            the ellipsoid is the collider on the person - this needs to match the boundary of the shape so that 
+            the person doesn't hover above surfaces, e.g. on a slope
+            By default the ellipsoid is centred on the bottom of the person mesh */
             const person = Mesh.MergeMeshes([capsule,nose], true, false, null, false, true);
+            person.position = new Vector3(-3,0,-8);
+            person.ellipsoid = new Vector3(0.25, 0.5, 0.25);
+            person.ellipsoidOffset = new Vector3(0, 0.5, 0);
+
 
             /* create platforms */
-            const box1 = MeshBuilder.CreateBox("plat1", {width:6, height:4, depth:2}, scene);
+            const box1 = MeshBuilder.CreateBox("plat1", {width:3, height:4, depth:2}, scene);
             const move1 = MeshBuilder.CreateBox("move1", {width:4, height:4, depth:6}, scene);
             const box2 = MeshBuilder.CreateBox("plat2",{width:6,height:4,depth:4}, scene);
             const raise1 = MeshBuilder.CreateBox("raise1",{width:2,height:2,depth:6},scene);
@@ -109,6 +105,9 @@ class App {
 
             const wallMat = new StandardMaterial("wallMat");
             wallMat.diffuseColor = new Color3.FromHexString("#86592d");
+
+            const rampMat = new StandardMaterial("rampMat");
+            rampMat.diffuseColor = new Color3(0,1,0);
 
             box1.material = wallMat;
             move1.material = wallMat;
@@ -124,21 +123,86 @@ class App {
             raise2.checkCollisions = true;
             raise3.checkCollisions = true;
 
-            box1.position = new Vector3(-1,2,-5 );
+            box1.position = new Vector3(-2.5,2,-5);
             move1.position = new Vector3(0, 0, -1);
             box2.position = new Vector3(-1,2,8);
             raise1.position = new Vector3(3,1,7);
             raise2.position = new Vector3(-1,1,4);
             raise3.position = new Vector3(-3,1,-1);
 
-            /* initial positions */
-            /* the ellipsoid is the collider on the person - this needs to match the boundary of the shape so that 
-            the person doesn't hover above surfaces, e.g. on a slope
-            By default the ellipsoid is centred on the bottom of the person mesh */
-            person.position = new Vector3(-3,0,-8);
-            person.ellipsoid = new Vector3(0.25, 0.5, 0.25);
-            person.ellipsoidOffset = new Vector3(0, 0.5, 0);
+            /* create lift */
+            const elevator2 = MeshBuilder.CreateBox("elevator2",{width:2,height:2,depth:2}, scene);
+            elevator2.material = wallMat;
+            elevator2.checkCollisions = true;
+            elevator2.position = new Vector3(3,-0.98,3);
 
+            /* create secret */
+            
+            let points = [
+                new Vector3(0,4,0),
+                new Vector3(0,3,0),
+                new Vector3(1.75,3,0),
+                new Vector3(1.75,0,0),
+                new Vector3(2,0,0),
+                new Vector3(2,4,0)
+            ];
+
+            
+            let pointsXZ = points.map((point) => {
+                return new Vector3(point.x,0,point.y);
+            });
+
+            /* create peekaboo wall */
+
+            let points2 = [
+                new Vector3(0,3,0),
+                new Vector3(0,2,0),
+                new Vector3(1,2,0),
+                new Vector3(1,1,0),
+                new Vector3(1,0,0),
+                new Vector3(0,0,0),
+                new Vector3(3,0,0),
+                new Vector3(3,3,0),
+            ];
+
+            let points2XZ = points2.map((point) => {
+                return new Vector3(point.x,0,point.y);
+            });
+            
+            
+            let polygon = MeshBuilder.ExtrudePolygon("secret1", {shape:pointsXZ, depth:3}, scene, earcut);
+            polygon.rotation.x = -Math.PI / 2;
+            polygon.rotation.y = -Math.PI / 2;
+            polygon.position = new Vector3(2,0,-6);
+            polygon.checkCollisions = true;
+
+            let wall = MeshBuilder.ExtrudePolygon("wall", {shape:points2XZ, depth:0.25}, scene, earcut);
+            wall.rotation.x = -Math.PI / 2;
+            //wall.rotation.y = -Math.PI / 2;
+            wall.position = new Vector3(-1,0,-6);
+            wall.checkCollisions = true;
+
+            /* platform */
+            const ramp1 =  MeshBuilder.CreateBox("ramp1", {width:1, height:1, depth:1.75}, scene);
+            ramp1.material = rampMat;
+            ramp1.checkCollisions = true;
+
+            ramp1.position = new Vector3(-0.5,0.5,-5.125);
+
+            let pointsRamp = [
+                new Vector3(0,0,0),
+                new Vector3(2,0,0),
+                new Vector3(0,1,0),
+            ];
+
+            let pointsRampXZ = pointsRamp.map((point) => {
+                return new Vector3(point.x,0,point.y);
+            });
+
+            let ramp2 = MeshBuilder.ExtrudePolygon("ramp2", {shape:pointsRampXZ, depth:1.5}, scene, earcut);
+            ramp2.rotation.x = -Math.PI / 2;
+            ramp2.position = new Vector3(0,0,-5.75);
+            ramp2.checkCollisions = true;
 
             // entity person
             // components: hasMesh, moveable (speed), playerControlled

@@ -38,6 +38,14 @@ class App {
            /* add the ground */
             let ground = MeshBuilder.CreateGround("ground", {width: 8, height: 20}, scene);
             //let ground = MeshBuilder.CreateGroundFromHeightMap("ground", "https://assets.babylonjs.com/textures/heightMap.png", {width:20, height:20, subdivisions:10,maxHeight:3}); 
+            /* set textures */
+            let groundMat = new StandardMaterial("groundMat", scene);
+            groundMat.diffuseColor = new Color3(0,1,0);
+            let groundTexture = new Texture("https://assets.babylonjs.com/textures/grass.jpg", scene);
+            groundMat.diffuseTexture = groundTexture;
+            groundMat.diffuseTexture.uScale = 8;
+            groundMat.diffuseTexture.vScale = 20;
+            ground.material = groundMat;
             ground.checkCollisions = true;
 
             /* ground boundaries */
@@ -131,10 +139,10 @@ class App {
             raise3.position = new Vector3(-3,1,-1);
 
             /* create lift */
-            const elevator2 = MeshBuilder.CreateBox("elevator2",{width:2,height:2,depth:2}, scene);
-            elevator2.material = wallMat;
-            elevator2.checkCollisions = true;
-            elevator2.position = new Vector3(3,-0.98,3);
+            const elevator = MeshBuilder.CreateBox("elevator",{width:2,height:2,depth:2}, scene);
+            elevator.material = wallMat;        
+            elevator.position = new Vector3(3,-1.05,3);
+            elevator.checkCollisions = true;
 
             /* create secret */
             
@@ -202,7 +210,37 @@ class App {
             let ramp2 = MeshBuilder.ExtrudePolygon("ramp2", {shape:pointsRampXZ, depth:1.5}, scene, earcut);
             ramp2.rotation.x = -Math.PI / 2;
             ramp2.position = new Vector3(0,0,-5.75);
+            ramp2.material = rampMat;
             ramp2.checkCollisions = true;
+
+            /* triggered actions */
+
+            const elevatorAnimation = new Animation("elevatorAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+            const elevatorKeys = [];
+
+            elevatorKeys.push({
+                frame:0,
+                value:-1.05
+            });
+
+            elevatorKeys.push({
+                frame:30,
+                value:0.5
+            });
+
+            elevatorKeys.push({
+                frame:60,
+                value:1
+            });
+
+            elevatorAnimation.setKeys(elevatorKeys);
+
+            elevator.animations.push(elevatorAnimation);
+
+            const makeElevatorRise = () => {
+                /* animate level first */
+                scene.beginAnimation(elevator,0,60, true);
+            };
 
             // entity person
             // components: hasMesh, moveable (speed), playerControlled
@@ -220,6 +258,14 @@ class App {
             // per-render updates
             scene.onBeforeRenderObservable.add(()=>{
 
+                
+                    // test for action
+                    if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
+                        if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard).getInput(32) == 1){
+                            makeElevatorRise();
+                        }
+                        
+                    }
                 // construct movement vector
                 // ignore y for the time being
                 // Vector3 (inputX, 0, inputZ)

@@ -214,7 +214,7 @@ class App {
             ramp2.checkCollisions = true;
 
             /* triggered actions */
-
+            let elevatorMoving = false;
             const elevatorAnimation = new Animation("elevatorAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
             const elevatorKeys = [];
 
@@ -237,9 +237,14 @@ class App {
 
             elevator.animations.push(elevatorAnimation);
 
+            const unParentPerson = () => {
+                person.setParent(null);
+            };
+
             const makeElevatorRise = () => {
-                /* animate level first */
-                scene.beginAnimation(elevator,0,60, true);
+                /* animate lever first */
+                person.setParent(elevator);
+                const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
             };
 
             // entity person
@@ -258,14 +263,6 @@ class App {
             // per-render updates
             scene.onBeforeRenderObservable.add(()=>{
 
-                
-                    // test for action
-                    if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
-                        if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard).getInput(32) == 1){
-                            makeElevatorRise();
-                        }
-                        
-                    }
                 // construct movement vector
                 // ignore y for the time being
                 // Vector3 (inputX, 0, inputZ)
@@ -302,6 +299,17 @@ class App {
                     if (piv.length() != 0){
                         let targetAngle = Math.atan2(cameraVectorNorm.x, cameraVectorNorm.z);
                         person.rotation.y = (targetAngle);
+                    }
+
+                     // test for action
+                     if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
+                        if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard).getInput(32) == 1){
+                            if (!elevatorMoving){
+                                elevatorMoving = true;
+                                makeElevatorRise();
+                            }
+                        }
+                        
                     }
                                           
             });

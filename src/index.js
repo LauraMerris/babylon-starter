@@ -1,7 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer } from "@babylonjs/core";
+import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4 } from "@babylonjs/core";
 import './style.css';
 import { showWorldAxis } from "../utilities/axes";
 import { playerInputVector} from "./inputSystem";
@@ -150,9 +150,12 @@ class App {
             raise2.position = new Vector3(-1,1,4);
             raise3.position = new Vector3(-3,1,-1);
 
+            let elevatorFaceColors = new Array(6);
+            elevatorFaceColors[1] = new Color4.FromHexString("#ede728");
+
             /* create lift */
-            const elevator = MeshBuilder.CreateBox("elevator",{width:2,height:2,depth:2}, scene);
-            elevator.material = wallMat;        
+            const elevator = MeshBuilder.CreateBox("elevator",{width:2,height:2,depth:2, faceColors:elevatorFaceColors}, scene);
+            //elevator.material = wallMat;        
             elevator.position = new Vector3(3,-1.05,3);
             elevator.checkCollisions = true;
 
@@ -166,7 +169,6 @@ class App {
                 new Vector3(2,0,0),
                 new Vector3(2,4,0)
             ];
-
             
             let pointsXZ = points.map((point) => {
                 return new Vector3(point.x,0,point.y);

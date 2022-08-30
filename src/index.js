@@ -1,7 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer } from "@babylonjs/core";
+import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer } from "@babylonjs/core";
 import './style.css';
 import { showWorldAxis } from "../utilities/axes";
 import { playerInputVector} from "./inputSystem";
@@ -27,9 +27,20 @@ class App {
             //showWorldAxis(scene, 2, new Vector3(-9,0,8));
             let deviceSourceManager = new DeviceSourceManager(scene.getEngine());
 
+            /* skybox */
+            scene.clearColor = new Color3.Black;
+            var skybox = MeshBuilder.CreateBox("skyBox", {size:100}, scene);
+	        var skyboxMaterial = new StandardMaterial("skyBox", scene);
+            skyboxMaterial.backFaceCulling = false;
+            skyboxMaterial.reflectionTexture = new CubeTexture("http://127.0.0.1:8181/skybox/skybox", scene);
+    
+            skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
+            skyboxMaterial.disableLighting = true;
+            skybox.material = skyboxMaterial;			
+
             // camera and light
             let camera = new ArcRotateCamera("Camera", -Math.PI /2, Math.PI / 3, 20, Vector3.Zero(), scene);
-            camera.upperBetaLimit = Math.PI / 2;
+            camera.upperBetaLimit = 80 * (Math.PI / 180);
             camera.attachControl(canvas, true);   
            
             let light = new HemisphericLight("light", new Vector3(1, 1, 0), scene);
@@ -41,7 +52,8 @@ class App {
             /* set textures */
             let groundMat = new StandardMaterial("groundMat", scene);
             groundMat.diffuseColor = new Color3(0,1,0);
-            let groundTexture = new Texture("https://assets.babylonjs.com/textures/grass.jpg", scene);
+            //let groundTexture = new Texture("https://assets.babylonjs.com/textures/grass.jpg", scene);
+            let groundTexture = new Texture("http://127.0.0.1:8181/grass.jpg", scene);
             groundMat.diffuseTexture = groundTexture;
             groundMat.diffuseTexture.uScale = 8;
             groundMat.diffuseTexture.vScale = 20;

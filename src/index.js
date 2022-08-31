@@ -1,11 +1,12 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4 } from "@babylonjs/core";
+import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager } from "@babylonjs/core";
 import './style.css';
 import { showWorldAxis } from "../utilities/axes";
 import { playerInputVector} from "./inputSystem";
 import * as earcut from "earcut";
+import { meshUboDeclaration } from "@babylonjs/core/Shaders/ShadersInclude/meshUboDeclaration";
 
 class App {
     constructor() {
@@ -113,7 +114,9 @@ class App {
             person.position = new Vector3(-3,0,-8);
             person.ellipsoid = new Vector3(0.25, 0.5, 0.25);
             person.ellipsoidOffset = new Vector3(0, 0.5, 0);
-
+            person.metadata = {
+                isClimbing:false
+            };
 
             /* create platforms */
             const box1 = MeshBuilder.CreateBox("plat1", {width:3, height:4, depth:2}, scene);
@@ -153,11 +156,84 @@ class App {
             let elevatorFaceColors = new Array(6);
             elevatorFaceColors[1] = new Color4.FromHexString("#ede728");
 
+
             /* create lift */
             const elevator = MeshBuilder.CreateBox("elevator",{width:2,height:2,depth:2, faceColors:elevatorFaceColors}, scene);
             //elevator.material = wallMat;        
             elevator.position = new Vector3(3,-1.05,3);
+            elevator.metadata = {
+                isRaised:false
+            };
             elevator.checkCollisions = true;
+
+            // elevator bottom hit box
+            const elevatorLowerTrigger = MeshBuilder.CreateBox("elevatorLowerTrigger", {width:2,height:0.25,depth:0.45},scene);
+            elevatorLowerTrigger.position = new Vector3(3,-1.875,2);
+            elevatorLowerTrigger.setParent(elevator);
+
+            elevatorLowerTrigger.actionManager = new ActionManager(scene);
+
+            const initiateLadderClimb = () => {
+                if (!elevator.metadata.isRaised) return;
+                if (!person.metadata.isClimbing == true){
+                    // and assuming the ladder is up
+                    // snap to point
+                    person.position = new Vector3(3,0.25,1.75);
+                    person.metadata.isClimbing = true;
+                    console.log('climbing');
+                } else {
+                    person.position = new Vector3(3,0,1.5);
+                    person.metadata.isClimbing = false;
+                    console.log('getting off the ladder');
+                }
+               
+            }
+
+            // is it possible to pass parameter to the subsequent function?
+            elevatorLowerTrigger.actionManager.registerAction(
+                new ExecuteCodeAction(
+                    {
+                        trigger: ActionManager.OnIntersectionEnterTrigger,
+                        parameter: person
+                    },
+                    initiateLadderClimb
+                )
+            );
+
+             // elevator top hit box
+             const elevatorUpperTrigger = MeshBuilder.CreateBox("elevatorUpperTrigger", {width:2,height:0.25,depth:0.45},scene);
+             elevatorUpperTrigger.position = new Vector3(3,0,2);
+             elevatorUpperTrigger.setParent(elevator);
+
+             elevatorUpperTrigger.actionManager = new ActionManager(scene);
+
+             const endLadderClimb = () => {
+                if (!elevator.metadata.isRaised) return;
+                if (person.metadata.isClimbing == true){
+                    // and assuming the ladder is up
+                    // snap to point
+                    person.position = new Vector3(3,2,2.1);
+                    person.metadata.isClimbing = false;
+                    console.log('got off');
+                } else {
+                    person.position = new Vector3(3,1.75,1.75);
+                    person.metadata.isClimbing = true;
+                    console.log('getting on the ladder');
+                }
+               
+            }
+
+             // is it possible to pass parameter to the subsequent function?
+             elevatorUpperTrigger.actionManager.registerAction(
+                new ExecuteCodeAction(
+                    {
+                        trigger: ActionManager.OnIntersectionEnterTrigger,
+                        parameter: person
+                    },
+                    endLadderClimb
+                )
+            );
+
 
             /* create secret */
             
@@ -252,6 +328,7 @@ class App {
             elevator.animations.push(elevatorAnimation);
 
             const unParentPerson = () => {
+                elevator.metadata.isRaised = true;
                 person.setParent(null);
             };
 
@@ -277,6 +354,7 @@ class App {
             // per-render updates
             scene.onBeforeRenderObservable.add(()=>{
 
+                   
                 // construct movement vector
                 // ignore y for the time being
                 // Vector3 (inputX, 0, inputZ)
@@ -287,6 +365,16 @@ class App {
                     let piv = playerInputVector(deviceSourceManager); // input vector in x/z plane
                     
                     let inputVector = piv.normalize();
+
+                    if (person.metadata.isClimbing){
+                        if (inputVector.z > 0){
+                            person.moveWithCollisions(new Vector3(0,0.03,0));
+                        } else if(inputVector.z < 0){
+                            person.moveWithCollisions(new Vector3(0,-0.03,0));
+                        }
+                        return;
+                    }
+
 
                     let cameraVector = camera.getDirection(piv);
 
@@ -315,8 +403,8 @@ class App {
                         person.rotation.y = (targetAngle);
                     }
 
-                     // test for action
-                     if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
+                    // spacebar triggers elevator animation
+                    if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
                         if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard).getInput(32) == 1){
                             if (!elevatorMoving){
                                 elevatorMoving = true;

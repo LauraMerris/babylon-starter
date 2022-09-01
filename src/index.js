@@ -183,6 +183,7 @@ class App {
                     // animate getting on, then snap to point
                     person.position = new Vector3(3,0.25,1.75);
                     person.metadata.isClimbing = true;
+                    person.rotation.y = 0;
                     console.log('got on at the bottom');
                     // restore player control
                 } else {
@@ -190,6 +191,7 @@ class App {
                     // animate getting off ladder, then
                     person.position = new Vector3(3,0,1.4);
                     person.metadata.isClimbing = false;
+                    person.rotation.y = Math.PI;
                     console.log('getting off the ladder at the bottom');
                     // restore player control
                 }
@@ -224,6 +226,7 @@ class App {
                     // animate getting off ladder at top then, snap to point
                     person.position = new Vector3(3,2,2.3);
                     person.metadata.isClimbing = false;
+                    person.rotation.y = 0;
                     console.log('got off at the top');
                     // restore player control
                 } else {
@@ -231,6 +234,7 @@ class App {
                     // animate getting on ladder at top then 
                     person.position = new Vector3(3,1.35,1.75);
                     person.metadata.isClimbing = true;
+                    person.rotation.y = 0;
                     console.log('getting on the ladder at the top');
                     // restore player control
                 }

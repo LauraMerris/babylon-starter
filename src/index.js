@@ -22,7 +22,7 @@ class App {
 
         const createScene = () => {
             let gravity = new Vector3(0, -0.1, 0);
-            let scaleFactor = 0.005; //speed
+            let scaleFactor = 0.003; //speed
 
             let scene = new Scene(engine);
             //showWorldAxis(scene, 2, new Vector3(-9,0,8));
@@ -168,23 +168,30 @@ class App {
 
             // elevator bottom hit box
             const elevatorLowerTrigger = MeshBuilder.CreateBox("elevatorLowerTrigger", {width:2,height:0.25,depth:0.45},scene);
-            elevatorLowerTrigger.position = new Vector3(3,-1.875,2);
+            elevatorLowerTrigger.position = new Vector3(3,-2,2);
             elevatorLowerTrigger.setParent(elevator);
+            elevatorLowerTrigger.isVisible = false;
 
             elevatorLowerTrigger.actionManager = new ActionManager(scene);
 
+            // bottom trigger point reached
             const initiateLadderClimb = () => {
                 if (!elevator.metadata.isRaised) return;
                 if (!person.metadata.isClimbing == true){
                     // and assuming the ladder is up
-                    // snap to point
+                    // remove player control
+                    // animate getting on, then snap to point
                     person.position = new Vector3(3,0.25,1.75);
                     person.metadata.isClimbing = true;
-                    console.log('climbing');
+                    console.log('got on at the bottom');
+                    // restore player control
                 } else {
-                    person.position = new Vector3(3,0,1.5);
+                    // remove player control
+                    // animate getting off ladder, then
+                    person.position = new Vector3(3,0,1.4);
                     person.metadata.isClimbing = false;
-                    console.log('getting off the ladder');
+                    console.log('getting off the ladder at the bottom');
+                    // restore player control
                 }
                
             }
@@ -202,23 +209,30 @@ class App {
 
              // elevator top hit box
              const elevatorUpperTrigger = MeshBuilder.CreateBox("elevatorUpperTrigger", {width:2,height:0.25,depth:0.45},scene);
-             elevatorUpperTrigger.position = new Vector3(3,0,2);
+             elevatorUpperTrigger.position = new Vector3(3,0.5,1.70);
              elevatorUpperTrigger.setParent(elevator);
+             elevatorUpperTrigger.isVisible = false;
 
              elevatorUpperTrigger.actionManager = new ActionManager(scene);
 
+             // top trigger point reached
              const endLadderClimb = () => {
                 if (!elevator.metadata.isRaised) return;
                 if (person.metadata.isClimbing == true){
                     // and assuming the ladder is up
-                    // snap to point
-                    person.position = new Vector3(3,2,2.1);
+                    // remove player control
+                    // animate getting off ladder at top then, snap to point
+                    person.position = new Vector3(3,2,2.3);
                     person.metadata.isClimbing = false;
-                    console.log('got off');
+                    console.log('got off at the top');
+                    // restore player control
                 } else {
-                    person.position = new Vector3(3,1.75,1.75);
+                    // remove player control
+                    // animate getting on ladder at top then 
+                    person.position = new Vector3(3,1.35,1.75);
                     person.metadata.isClimbing = true;
-                    console.log('getting on the ladder');
+                    console.log('getting on the ladder at the top');
+                    // restore player control
                 }
                
             }
@@ -368,9 +382,9 @@ class App {
 
                     if (person.metadata.isClimbing){
                         if (inputVector.z > 0){
-                            person.moveWithCollisions(new Vector3(0,0.03,0));
+                            person.moveWithCollisions(new Vector3(0,0.015,0));
                         } else if(inputVector.z < 0){
-                            person.moveWithCollisions(new Vector3(0,-0.03,0));
+                            person.moveWithCollisions(new Vector3(0,-0.015,0));
                         }
                         return;
                     }

@@ -111,7 +111,7 @@ class App {
             the person doesn't hover above surfaces, e.g. on a slope
             By default the ellipsoid is centred on the bottom of the person mesh */
             const person = Mesh.MergeMeshes([capsule,nose], true, false, null, false, true);
-            person.position = new Vector3(-3,0,-8);
+            person.position = new Vector3(-3,1,-8);
             person.ellipsoid = new Vector3(0.25, 0.5, 0.25);
             person.ellipsoidOffset = new Vector3(0, 0.5, 0);
             person.metadata = {
@@ -252,6 +252,27 @@ class App {
                 )
             );
 
+            /* create initial slope */
+            let slope = [
+                new Vector3(0,1,0),
+                new Vector3(0,0,0),
+                new Vector3(3,0,0),
+                new Vector3(2.8,0.05,0),
+                new Vector3(1.7,0.95,0),
+                new Vector3(1.5,1,0) 
+            ];
+
+            const convertToXZPlane = (arr) => {
+                return arr.map((point) => {
+                    return new Vector3(point.x,0,point.y);
+                });
+            };
+
+            let slopeXZ = convertToXZPlane(slope);
+            let starterSlope = MeshBuilder.ExtrudePolygon("starterSlope",{shape:slopeXZ, depth:4}, scene, earcut);
+            starterSlope.rotation.x = -Math.PI / 2;
+            starterSlope.position = new Vector3(-4,0,-10);
+            starterSlope.checkCollisions = true;
 
             /* create secret */
             

@@ -1,7 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager, Curve3 } from "@babylonjs/core";
+import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager, Curve3, PredicateCondition } from "@babylonjs/core";
 import './style.css';
 import { showWorldAxis } from "../utilities dev/axes";
 import { playerInputVector} from "./inputSystem";
@@ -62,6 +62,92 @@ class App {
             };
             elevator.checkCollisions = true;
 
+             /* elevator call animation */
+            const elevatorAnimation = new Animation("elevatorAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+            const elevatorKeys = [];
+
+            elevatorKeys.push({
+                frame:0,
+                value:-1.05
+            });
+
+            elevatorKeys.push({
+                frame:30,
+                value:0.5
+            });
+
+            elevatorKeys.push({
+                frame:60,
+                value:1
+            });
+
+            elevatorAnimation.setKeys(elevatorKeys);
+            elevator.animations.push(elevatorAnimation);
+
+            /* raising the elevator */
+
+            const unParentPerson = () => {
+                elevator.metadata.isRaised = true;
+                person.setParent(null);
+            };
+
+            const makeElevatorRise = () => {
+                /* animate lever first */
+                person.setParent(elevator);
+                const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
+            };
+
+            /* call elevator button */
+            const elevatorButton = MeshBuilder.CreateCylinder("cylinder", {height:0.1, diameter:0.5}, scene);
+            elevatorButton.position = new Vector3(3,0,3);
+            elevatorButton.setParent(elevator);
+
+            // trigger button press prompt when near elevatorButton
+            const elevatorButtonCollider = MeshBuilder.CreateBox("elevatorButtonCollider", {width:1, height:1, depth:1}, scene);
+            elevatorButtonCollider.position = new Vector3(3,0.5,3);
+            elevatorButtonCollider.isVisible = false;
+
+            elevatorButtonCollider.actionManager = new ActionManager(scene);
+            scene.actionManager = new ActionManager(scene);
+            let personCanAct = false;
+
+            const keyListener = scene.actionManager.registerAction(
+                new ExecuteCodeAction(
+                    {
+                        trigger: ActionManager.OnKeyDownTrigger,
+                        parameter: 'o'
+                    },
+                    function(){
+                        console.log('calling the elevator');
+                    },
+                    new PredicateCondition(
+                        scene.actionManager,
+                        function(){
+                            return personCanAct == true;
+                        }
+                    )
+                )
+            )
+
+            
+
+            elevatorButtonCollider.actionManager.registerAction(
+                new ExecuteCodeAction(
+                    {
+                        trigger: ActionManager.OnIntersectionEnterTrigger,
+                        parameter: person
+                    },
+                    function(){
+                        console.log("show button prompt here");
+                        personCanAct = true;
+                    }
+                )
+            );
+
+            // exitTrigger - remove person action mode and hide prompt
+
+
+            /* --------- climbing a ladder ---------- */
             // elevator bottom hit box
             const elevatorLowerTrigger = MeshBuilder.CreateBox("elevatorLowerTrigger", {width:2,height:0.25,depth:0.45},scene);
             elevatorLowerTrigger.position = new Vector3(3,-2,2);
@@ -148,41 +234,6 @@ class App {
                 )
             );
 
-            /* triggered actions */
-            let elevatorMoving = false;
-            const elevatorAnimation = new Animation("elevatorAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
-            const elevatorKeys = [];
-
-            elevatorKeys.push({
-                frame:0,
-                value:-1.05
-            });
-
-            elevatorKeys.push({
-                frame:30,
-                value:0.5
-            });
-
-            elevatorKeys.push({
-                frame:60,
-                value:1
-            });
-
-            elevatorAnimation.setKeys(elevatorKeys);
-
-            elevator.animations.push(elevatorAnimation);
-
-            const unParentPerson = () => {
-                elevator.metadata.isRaised = true;
-                person.setParent(null);
-            };
-
-            const makeElevatorRise = () => {
-                /* animate lever first */
-                person.setParent(elevator);
-                const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
-            };
-
             // per-render updates
             scene.onBeforeRenderObservable.add(()=>{
  
@@ -237,6 +288,7 @@ class App {
                     }
 
                     // spacebar triggers elevator animation
+                    /*
                     if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
                         if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard).getInput(32) == 1){
                             if (!elevatorMoving){
@@ -245,7 +297,7 @@ class App {
                             }
                         }
                         
-                    }
+                    }*/
                                           
             });
 

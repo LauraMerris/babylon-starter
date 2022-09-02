@@ -1,7 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager } from "@babylonjs/core";
+import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager, Curve3 } from "@babylonjs/core";
 import './style.css';
 import { showWorldAxis } from "../utilities/axes";
 import { playerInputVector} from "./inputSystem";
@@ -257,10 +257,19 @@ class App {
                 new Vector3(0,1,0),
                 new Vector3(0,0,0),
                 new Vector3(3,0,0),
-                new Vector3(2.8,0.05,0),
-                new Vector3(1.7,0.95,0),
-                new Vector3(1.5,1,0) 
+                //new Vector3(2.8,0.05,0),
+                //new Vector3(1.7,0.95,0),
+                //new Vector3(1.5,1,0) 
             ];
+
+            let hermite = Curve3.CreateHermiteSpline(
+                new Vector3(3,0,0),
+                new Vector3(-1.25,0,0),
+                new Vector3(1.25,1,0),
+                new Vector3(-1.5,0,0),
+                60);
+
+            slope.push(...hermite.getPoints());
 
             const convertToXZPlane = (arr) => {
                 return arr.map((point) => {

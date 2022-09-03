@@ -28,7 +28,8 @@
     person.ellipsoidOffset = new Vector3(0, 0.5, 0);
 
     person.metadata = {
-      isClimbing:false
+      isClimbing:false,
+      playerControlled:true
     };
 
     return person;

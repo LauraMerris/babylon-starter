@@ -1,12 +1,14 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager, Curve3 } from "@babylonjs/core";
+import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager, Curve3, PredicateCondition } from "@babylonjs/core";
 import './style.css';
 import { showWorldAxis } from "../utilities dev/axes";
 import { playerInputVector} from "./inputSystem";
-import { createWorld } from "./models/worldData";
-import {createCharacter} from "./models/person";
+import { createWorld, buttonPressedMat } from "./models/worldData";
+import { createCharacter } from "./models/person";
+import { initActionSystem, createCollider, canInteract } from "./movement/movementSystem";
+import { raiseYAnimation } from "./utilities/utilities";
 
 class App {
     constructor() {
@@ -25,7 +27,8 @@ class App {
             let scaleFactor = 0.003; //speed
 
             let scene = new Scene(engine);
-            //scene.debugLayer.show();
+            initActionSystem(scene);
+            createWorld(scene);
 
             let deviceSourceManager = new DeviceSourceManager(scene.getEngine());
 
@@ -47,14 +50,12 @@ class App {
            
             let light = new HemisphericLight("light", new Vector3(1, 1, 0), scene);
             
-            createWorld(scene);
+            // player
             let person = createCharacter(scene);
 
+            /* create elevator */
             let elevatorFaceColors = new Array(6);
             elevatorFaceColors[1] = new Color4.FromHexString("#ede728");
-
-
-            /* create elevator */
             const elevator = MeshBuilder.CreateBox("elevator",{width:2,height:2,depth:2, faceColors:elevatorFaceColors}, scene);       
             elevator.position = new Vector3(3,-1.05,3);
             elevator.metadata = {
@@ -62,6 +63,34 @@ class App {
             };
             elevator.checkCollisions = true;
 
+            const elevatorButton = MeshBuilder.CreateCylinder("cylinder", {height:0.1, diameter:0.5}, scene);
+            elevatorButton.position = new Vector3(3,0,3);   
+            elevatorButton.setParent(elevator);
+
+            /* raising the elevator */
+            const elevatorAnimation = raiseYAnimation(-1.05,1);
+            elevator.animations.push(elevatorAnimation);
+
+            const raiseElevator = () => {
+                const unParentPerson = () => {
+                    elevator.metadata.isRaised = true;
+                    person.setParent(null);
+                    person.metadata.playerControlled = true;
+                };
+                let buttonPressedMat = new StandardMaterial("buttonPressedMat", scene);
+                buttonPressedMat.diffuseColor = new Color3(0,1,0);
+                elevatorButton.material = buttonPressedMat;
+                person.metadata.playerControlled = false;
+                person.setParent(elevator);
+                const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
+            };
+
+            /* set interaction */
+            const elevatorCollider = createCollider(elevatorButton, "elevatorButtonCollider", 1, 1, 1, new Vector3(3,0.5,3), raiseElevator);
+            canInteract(elevatorCollider,person);
+            
+
+            /* --------- climbing a ladder ---------- */
             // elevator bottom hit box
             const elevatorLowerTrigger = MeshBuilder.CreateBox("elevatorLowerTrigger", {width:2,height:0.25,depth:0.45},scene);
             elevatorLowerTrigger.position = new Vector3(3,-2,2);
@@ -148,41 +177,6 @@ class App {
                 )
             );
 
-            /* triggered actions */
-            let elevatorMoving = false;
-            const elevatorAnimation = new Animation("elevatorAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
-            const elevatorKeys = [];
-
-            elevatorKeys.push({
-                frame:0,
-                value:-1.05
-            });
-
-            elevatorKeys.push({
-                frame:30,
-                value:0.5
-            });
-
-            elevatorKeys.push({
-                frame:60,
-                value:1
-            });
-
-            elevatorAnimation.setKeys(elevatorKeys);
-
-            elevator.animations.push(elevatorAnimation);
-
-            const unParentPerson = () => {
-                elevator.metadata.isRaised = true;
-                person.setParent(null);
-            };
-
-            const makeElevatorRise = () => {
-                /* animate lever first */
-                person.setParent(elevator);
-                const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
-            };
-
             // per-render updates
             scene.onBeforeRenderObservable.add(()=>{
  
@@ -193,6 +187,8 @@ class App {
                 // person.position is moved (movement vector * scene.deltaTime * playerSpeed)
 
                 // movementSystem.movePlayer();
+
+                    if (!person.metadata.playerControlled) return;
 
                     let delta = scene.deltaTime;
                     let piv = playerInputVector(deviceSourceManager); // input vector in x/z plane
@@ -235,18 +231,7 @@ class App {
                         let targetAngle = Math.atan2(cameraVectorNorm.x, cameraVectorNorm.z);
                         person.rotation.y = (targetAngle);
                     }
-
-                    // spacebar triggers elevator animation
-                    if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
-                        if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard).getInput(32) == 1){
-                            if (!elevatorMoving){
-                                elevatorMoving = true;
-                                makeElevatorRise();
-                            }
-                        }
-                        
-                    }
-                                          
+            
             });
 
             return scene;

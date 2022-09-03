@@ -5,9 +5,10 @@ import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion
 import './style.css';
 import { showWorldAxis } from "../utilities dev/axes";
 import { playerInputVector} from "./inputSystem";
-import { createWorld } from "./models/worldData";
-import {createCharacter} from "./models/person";
+import { createWorld, buttonPressedMat } from "./models/worldData";
+import { createCharacter } from "./models/person";
 import { initActionSystem, createCollider, canInteract } from "./movement/movementSystem";
+import { raiseYAnimation } from "./utilities/utilities";
 
 class App {
     constructor() {
@@ -52,9 +53,6 @@ class App {
             // player
             let person = createCharacter(scene);
 
-
-            /* components */
-
             /* create elevator */
             let elevatorFaceColors = new Array(6);
             elevatorFaceColors[1] = new Color4.FromHexString("#ede728");
@@ -65,47 +63,31 @@ class App {
             };
             elevator.checkCollisions = true;
 
-            /* elevator call animation */
-            const elevatorAnimation = new Animation("elevatorAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
-            const elevatorKeys = [];
-
-            elevatorKeys.push({
-                frame:0,
-                value:-1.05
-            });
-
-            elevatorKeys.push({
-                frame:30,
-                value:0.5
-            });
-
-            elevatorKeys.push({
-                frame:60,
-                value:1
-            });
-
-            elevatorAnimation.setKeys(elevatorKeys);
-            elevator.animations.push(elevatorAnimation);
+            const elevatorButton = MeshBuilder.CreateCylinder("cylinder", {height:0.1, diameter:0.5}, scene);
+            elevatorButton.position = new Vector3(3,0,3);   
+            elevatorButton.setParent(elevator);
 
             /* raising the elevator */
+            const elevatorAnimation = raiseYAnimation(-1.05,1);
+            elevator.animations.push(elevatorAnimation);
 
             const raiseElevator = () => {
                 const unParentPerson = () => {
                     elevator.metadata.isRaised = true;
                     person.setParent(null);
+                    person.metadata.playerControlled = true;
                 };
-
-                /* animate lever first */
+                let buttonPressedMat = new StandardMaterial("buttonPressedMat", scene);
+                buttonPressedMat.diffuseColor = new Color3(0,1,0);
+                elevatorButton.material = buttonPressedMat;
+                person.metadata.playerControlled = false;
                 person.setParent(elevator);
                 const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
             };
 
-            /* elevator button */
-            const elevatorButton = MeshBuilder.CreateCylinder("cylinder", {height:0.1, diameter:0.5}, scene);
-            elevatorButton.position = new Vector3(3,0,3);     
+            /* set interaction */
             const elevatorCollider = createCollider(elevatorButton, "elevatorButtonCollider", 1, 1, 1, new Vector3(3,0.5,3), raiseElevator);
             canInteract(elevatorCollider,person);
-            elevatorButton.setParent(elevator);
             
 
             /* --------- climbing a ladder ---------- */
@@ -205,6 +187,8 @@ class App {
                 // person.position is moved (movement vector * scene.deltaTime * playerSpeed)
 
                 // movementSystem.movePlayer();
+
+                    if (!person.metadata.playerControlled) return;
 
                     let delta = scene.deltaTime;
                     let piv = playerInputVector(deviceSourceManager); // input vector in x/z plane

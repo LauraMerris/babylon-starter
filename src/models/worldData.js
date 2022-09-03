@@ -3,26 +3,26 @@ import * as earcut from "earcut";
 
 const createWorld = (scene) => {
 
+    /* materials */
+    const wallMat = new StandardMaterial("wallMat");
+    wallMat.diffuseColor = new Color3.FromHexString("#86592d");
+
+    let groundMat = new StandardMaterial("groundMat", scene);
+    groundMat.diffuseColor = new Color3(0,1,0);
+
+    const rampMat = new StandardMaterial("rampMat");
+    rampMat.diffuseColor = new Color3(0,1,0);
+
     /* add the ground */
     let ground = MeshBuilder.CreateGround("ground", {width: 8, height: 20}, scene);
 
     /* set textures */
-    let groundMat = new StandardMaterial("groundMat", scene);
-    groundMat.diffuseColor = new Color3(0,1,0);
-
     let groundTexture = new Texture("http://127.0.0.1:8181/grass.jpg", scene);
     groundMat.diffuseTexture = groundTexture;
     groundMat.diffuseTexture.uScale = 8;
     groundMat.diffuseTexture.vScale = 20;
     ground.material = groundMat;
     ground.checkCollisions = true;
-
-    /* materials */
-    const wallMat = new StandardMaterial("wallMat");
-    wallMat.diffuseColor = new Color3.FromHexString("#86592d");
-
-    const rampMat = new StandardMaterial("rampMat");
-    rampMat.diffuseColor = new Color3(0,1,0);
 
     /* create platforms */
     const box1 = MeshBuilder.CreateBox("plat1", {width:3, height:4, depth:2}, scene);

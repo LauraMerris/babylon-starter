@@ -1,18 +1,16 @@
 import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vector3} from "@babylonjs/core";
 /* ---------------- interaction system --------------- */
 
-
     let playerActionTarget = "";
     let scene;
 
     const initActionSystem = (currentScene) => {
 
         scene = currentScene;
-        // observable on actionTarget?
 
-        // when player presses the action button
-        // get the current target that player can act on
-        // and perfom its action
+        // we attach one actionManager to the scene to listen for action key down (e by default)
+        // find the current target stored in a global variable
+        // target has a function stored in metadata that defines the action to take - playerAction
 
         scene.actionManager = new ActionManager(scene);
         const keyListener = scene.actionManager.registerAction(
@@ -59,6 +57,30 @@ import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vecto
         return collider;
     }
 
+    // creates an animation to raise the mesh by the specified amount
+    const raiseYAnimation = (start, end) => {
+         const yMovementAnimation = new Animation("yMovementAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
+         const yMovementAnimationKeys = [];
 
-export {initActionSystem, canInteract, createCollider};
+         yMovementAnimationKeys.push({
+             frame:0,
+             value:start
+         });
+
+         yMovementAnimationKeys.push({
+             frame:30,
+             value:((start- end)/2)
+         });
+
+         yMovementAnimationKeys.push({
+             frame:60,
+             value:end
+         });
+
+         yMovementAnimation.setKeys(yMovementAnimationKeys);
+         return yMovementAnimation;
+    }
+
+
+export {initActionSystem, canInteract, createCollider, raiseYAnimation};
     

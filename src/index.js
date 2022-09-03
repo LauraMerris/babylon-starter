@@ -7,6 +7,7 @@ import { showWorldAxis } from "../utilities dev/axes";
 import { playerInputVector} from "./inputSystem";
 import { createWorld } from "./models/worldData";
 import {createCharacter} from "./models/person";
+import { initActionSystem, createCollider, canInteract } from "./movement/movementSystem";
 
 class App {
     constructor() {
@@ -25,7 +26,8 @@ class App {
             let scaleFactor = 0.003; //speed
 
             let scene = new Scene(engine);
-            //scene.debugLayer.show();
+            initActionSystem(scene);
+            createWorld(scene);
 
             let deviceSourceManager = new DeviceSourceManager(scene.getEngine());
 
@@ -47,14 +49,15 @@ class App {
            
             let light = new HemisphericLight("light", new Vector3(1, 1, 0), scene);
             
-            createWorld(scene);
+            // player
             let person = createCharacter(scene);
 
-            let elevatorFaceColors = new Array(6);
-            elevatorFaceColors[1] = new Color4.FromHexString("#ede728");
 
+            /* components */
 
             /* create elevator */
+            let elevatorFaceColors = new Array(6);
+            elevatorFaceColors[1] = new Color4.FromHexString("#ede728");
             const elevator = MeshBuilder.CreateBox("elevator",{width:2,height:2,depth:2, faceColors:elevatorFaceColors}, scene);       
             elevator.position = new Vector3(3,-1.05,3);
             elevator.metadata = {
@@ -62,7 +65,7 @@ class App {
             };
             elevator.checkCollisions = true;
 
-             /* elevator call animation */
+            /* elevator call animation */
             const elevatorAnimation = new Animation("elevatorAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
             const elevatorKeys = [];
 
@@ -86,66 +89,24 @@ class App {
 
             /* raising the elevator */
 
-            const unParentPerson = () => {
-                elevator.metadata.isRaised = true;
-                person.setParent(null);
-            };
+            const raiseElevator = () => {
+                const unParentPerson = () => {
+                    elevator.metadata.isRaised = true;
+                    person.setParent(null);
+                };
 
-            const makeElevatorRise = () => {
                 /* animate lever first */
                 person.setParent(elevator);
                 const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
             };
 
-            /* call elevator button */
+            /* elevator button */
             const elevatorButton = MeshBuilder.CreateCylinder("cylinder", {height:0.1, diameter:0.5}, scene);
-            elevatorButton.position = new Vector3(3,0,3);
+            elevatorButton.position = new Vector3(3,0,3);     
+            const elevatorCollider = createCollider(elevatorButton, "elevatorButtonCollider", 1, 1, 1, new Vector3(3,0.5,3), raiseElevator);
+            canInteract(elevatorCollider,person);
             elevatorButton.setParent(elevator);
-
-            // trigger button press prompt when near elevatorButton
-            const elevatorButtonCollider = MeshBuilder.CreateBox("elevatorButtonCollider", {width:1, height:1, depth:1}, scene);
-            elevatorButtonCollider.position = new Vector3(3,0.5,3);
-            elevatorButtonCollider.isVisible = false;
-
-            elevatorButtonCollider.actionManager = new ActionManager(scene);
-            scene.actionManager = new ActionManager(scene);
-            let personCanAct = false;
-
-            const keyListener = scene.actionManager.registerAction(
-                new ExecuteCodeAction(
-                    {
-                        trigger: ActionManager.OnKeyDownTrigger,
-                        parameter: 'o'
-                    },
-                    function(){
-                        console.log('calling the elevator');
-                    },
-                    new PredicateCondition(
-                        scene.actionManager,
-                        function(){
-                            return personCanAct == true;
-                        }
-                    )
-                )
-            )
-
             
-
-            elevatorButtonCollider.actionManager.registerAction(
-                new ExecuteCodeAction(
-                    {
-                        trigger: ActionManager.OnIntersectionEnterTrigger,
-                        parameter: person
-                    },
-                    function(){
-                        console.log("show button prompt here");
-                        personCanAct = true;
-                    }
-                )
-            );
-
-            // exitTrigger - remove person action mode and hide prompt
-
 
             /* --------- climbing a ladder ---------- */
             // elevator bottom hit box
@@ -286,19 +247,7 @@ class App {
                         let targetAngle = Math.atan2(cameraVectorNorm.x, cameraVectorNorm.z);
                         person.rotation.y = (targetAngle);
                     }
-
-                    // spacebar triggers elevator animation
-                    /*
-                    if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard)){
-                        if (deviceSourceManager.getDeviceSource(DeviceType.Keyboard).getInput(32) == 1){
-                            if (!elevatorMoving){
-                                elevatorMoving = true;
-                                makeElevatorRise();
-                            }
-                        }
-                        
-                    }*/
-                                          
+            
             });
 
             return scene;

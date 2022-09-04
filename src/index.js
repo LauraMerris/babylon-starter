@@ -8,7 +8,8 @@ import { playerInputVector} from "./inputSystem";
 import { createWorld, buttonPressedMat } from "./models/worldData";
 import { createCharacter } from "./models/person";
 import { initActionSystem, createCollider, canInteract } from "./movement/movementSystem";
-import { raiseYAnimation } from "./utilities/utilities";
+import { raiseYAnimation } from "./animation";
+import {gravity, scaleFactor, assetsHostUrl} from "./globals";
 
 class App {
     constructor() {
@@ -17,15 +18,11 @@ class App {
         canvas.id = "renderCanvas";
         document.body.appendChild(canvas);
 
-        let assetsHostUrl = "http://127.0.0.1:8181/";
-
         // initialize babylon scene and engine
         var engine = new Engine(canvas, true);
 
         const createScene = () => {
-            let gravity = new Vector3(0, -0.1, 0);
-            let scaleFactor = 0.003; //speed
-
+          
             let scene = new Scene(engine);
             initActionSystem(scene);
             createWorld(scene);
@@ -37,8 +34,7 @@ class App {
             var skybox = MeshBuilder.CreateBox("skyBox", {size:100}, scene);
 	        var skyboxMaterial = new StandardMaterial("skyBox", scene);
             skyboxMaterial.backFaceCulling = false;
-            skyboxMaterial.reflectionTexture = new CubeTexture("http://127.0.0.1:8181/skybox/skybox", scene);
-    
+            skyboxMaterial.reflectionTexture = new CubeTexture(`${assetsHostUrl}/skybox/skybox`, scene);
             skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
             skyboxMaterial.disableLighting = true;
             skybox.material = skyboxMaterial;			
@@ -67,6 +63,12 @@ class App {
             elevatorButton.position = new Vector3(3,0,3);   
             elevatorButton.setParent(elevator);
 
+            const buttonSwitchOn = () => {
+                let buttonPressedMat = new StandardMaterial("buttonPressedMat", scene);
+                buttonPressedMat.diffuseColor = new Color3(0,1,0);
+                elevatorButton.material = buttonPressedMat;
+            };
+
             /* raising the elevator */
             const elevatorAnimation = raiseYAnimation(-1.05,1);
             elevator.animations.push(elevatorAnimation);
@@ -76,18 +78,16 @@ class App {
                     elevator.metadata.isRaised = true;
                     person.setParent(null);
                     person.metadata.playerControlled = true;
-                };
-                let buttonPressedMat = new StandardMaterial("buttonPressedMat", scene);
-                buttonPressedMat.diffuseColor = new Color3(0,1,0);
-                elevatorButton.material = buttonPressedMat;
+                };    
                 person.metadata.playerControlled = false;
                 person.setParent(elevator);
                 const anim = scene.beginAnimation(elevator,0,60, false,1,unParentPerson);
             };
 
             /* set interaction */
-            const elevatorCollider = createCollider(elevatorButton, "elevatorButtonCollider", 1, 1, 1, new Vector3(3,0.5,3), raiseElevator);
-            canInteract(elevatorCollider,person);
+            let actionsOnCollision = [buttonSwitchOn, raiseElevator];
+            const elevatorCollider = createCollider(elevatorButton, "elevatorButtonCollider", 1, 1, 1, new Vector3(3,0.5,3), actionsOnCollision);
+            canInteract(elevatorCollider, person);
             
 
             /* --------- climbing a ladder ---------- */

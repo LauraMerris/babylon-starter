@@ -1,5 +1,4 @@
-import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vector3} from "@babylonjs/core";
-/* ---------------- interaction system --------------- */
+import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vector3, CombineAction, Action} from "@babylonjs/core";
 
     let playerActionTarget = "";
     let scene;
@@ -21,8 +20,10 @@ import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vecto
                 },
                 function(){
                     let target = scene.getMeshByName(playerActionTarget);
-                    if (!target.metadata) return;
-                    target.metadata.playerAction();
+                    if (!target.metadata || !target.metadata.playerAction.length) return;
+                    for (let i = 0; i < target.metadata.playerAction.length; i++){
+                        target.metadata.playerAction[i]();
+                    }
                 },
                 new PredicateCondition(
                     scene.actionManager,
@@ -36,6 +37,7 @@ import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vecto
     }
 
 
+
     // call on any collider (mesh) that can be interacted with by (person) when pressing the action button
     // assumes only one action target is available at once
     // collider mesh must have the playerAction property in its metadata
@@ -46,41 +48,21 @@ import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vecto
     }
 
    
-    // creates collider mesh and associated action
-    const createCollider = (mesh, name, width, height, depth, position, action) => {
+    // creates collider mesh and associated actions
+    const createCollider = (mesh, name, width, height, depth, position, actionArray) => {
         const collider = MeshBuilder.CreateBox(name, {width:width, height:height, depth:depth}, scene);
         collider.position = mesh.getAbsolutePosition().add(new Vector3(height/2));
         collider.isVisible = false;
         collider.metadata = {
-            playerAction: action
+            playerAction: [...actionArray],
         }
         return collider;
     }
 
-    // creates an animation to raise the mesh by the specified amount
-    const raiseYAnimation = (start, end) => {
-         const yMovementAnimation = new Animation("yMovementAnimation", "position.y", 30, Animation.ANIMATIONTYPE_FLOAT, Animation.ANIMATIONLOOPMODE_CONSTANT);
-         const yMovementAnimationKeys = [];
-
-         yMovementAnimationKeys.push({
-             frame:0,
-             value:start
-         });
-
-         yMovementAnimationKeys.push({
-             frame:30,
-             value:((start- end)/2)
-         });
-
-         yMovementAnimationKeys.push({
-             frame:60,
-             value:end
-         });
-
-         yMovementAnimation.setKeys(yMovementAnimationKeys);
-         return yMovementAnimation;
+    const addColliderAction = (collider, arr) => {
+        collider.metadata.playerAction.push(...arr);
     }
 
 
-export {initActionSystem, canInteract, createCollider, raiseYAnimation};
+export {initActionSystem, canInteract, createCollider};
     

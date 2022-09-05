@@ -1,26 +1,29 @@
 import { Vector3, MeshBuilder, StandardMaterial, Curve3, Color3, Texture } from "@babylonjs/core";
 import * as earcut from "earcut";
+import { materialLibrary } from "../materials";
 
 const createWorld = (scene) => {
 
-    /* materials */
-    const wallMat = new StandardMaterial("wallMat");
-    wallMat.diffuseColor = new Color3.FromHexString("#86592d");
-
+    /*
+    const wallMat = materials.wall(scene);
+    const groundMat = materials.ground(scene);
+    const rampMat = materials.ramp(scene);
+    */
+    /*
     let groundMat = new StandardMaterial("groundMat", scene);
     groundMat.diffuseColor = new Color3(0,1,0);
 
     const rampMat = new StandardMaterial("rampMat");
     rampMat.diffuseColor = new Color3(0,1,0);
+*/
+
+    let wallMat = scene.getMaterialByName("materialWall");
+    let groundMat = scene.getMaterialByName("materialGround");
+    let rampMat = scene.getMaterialByName("materialRamp");
+    let boundaryMat = scene.getMaterialByName("materialBoundary");
 
     /* add the ground */
-    let ground = MeshBuilder.CreateGround("ground", {width: 8, height: 20}, scene);
-
-    /* set textures */
-    let groundTexture = new Texture("http://127.0.0.1:8181/grass.jpg", scene);
-    groundMat.diffuseTexture = groundTexture;
-    groundMat.diffuseTexture.uScale = 8;
-    groundMat.diffuseTexture.vScale = 20;
+    let ground = MeshBuilder.CreateGround("ground", {width: 8, height: 20}, scene);   
     ground.material = groundMat;
     ground.checkCollisions = true;
 
@@ -113,7 +116,6 @@ const createWorld = (scene) => {
     const ramp1 =  MeshBuilder.CreateBox("ramp1", {width:1, height:1, depth:1.75}, scene);
     ramp1.material = rampMat;
     ramp1.checkCollisions = true;
-
     ramp1.position = new Vector3(-0.5,0.5,-5.125);
 
     let pointsRamp = [
@@ -134,8 +136,6 @@ const createWorld = (scene) => {
     const boundary3 = MeshBuilder.CreateBox("boundary3", {width:0.5, height:10, depth:22}, scene);
     const boundary4 = MeshBuilder.CreateBox("boundary4", {width:0.5, height:10, depth:22}, scene);
 
-    const boundaryMat = new StandardMaterial("boundaryMat");
-    boundaryMat.diffuseColor = new Color3(0, 0, 1);
     boundary1.material = boundaryMat;
     boundary2.material = boundaryMat;
     boundary3.material = boundaryMat;

@@ -3,13 +3,13 @@ import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
 import { Engine, Scene, ArcRotateCamera, CubeTexture, DynamicTexture, Quaternion, Vector3, HemisphericLight, DeviceType, Mesh, MeshBuilder, DeviceSourceManager, SceneLoader, StandardMaterial, Texture, Color3, Animation, Tools, Space, Axis, AxesViewer, Color4, ExecuteCodeAction, ActionManager, Curve3, PredicateCondition } from "@babylonjs/core";
 import './style.css';
-import { showWorldAxis } from "../utilities dev/axes";
 import { playerInputVector} from "./inputSystem";
-import { createWorld, buttonPressedMat } from "./models/worldData";
+import { createWorld } from "./models/worldData";
 import { createCharacter } from "./models/person";
 import { initActionSystem, createCollider, canInteract } from "./movement/movementSystem";
 import { raiseYAnimation } from "./animation";
-import {gravity, scaleFactor, assetsHostUrl} from "./globals";
+import { gravity, scaleFactor, assetsHostUrl } from "./globals";
+import { materialLibrary } from "./materials";
 
 class App {
     constructor() {
@@ -24,6 +24,7 @@ class App {
         const createScene = () => {
           
             let scene = new Scene(engine);
+            materialLibrary(scene);
             initActionSystem(scene);
             createWorld(scene);
 
@@ -52,7 +53,7 @@ class App {
             /* create elevator */
             let elevatorFaceColors = new Array(6);
             elevatorFaceColors[1] = new Color4.FromHexString("#ede728");
-            const elevator = MeshBuilder.CreateBox("elevator",{width:2,height:2,depth:2, faceColors:elevatorFaceColors}, scene);       
+            const elevator = MeshBuilder.CreateBox("elevator", {width:2,height:2,depth:2, faceColors:elevatorFaceColors}, scene);       
             elevator.position = new Vector3(3,-1.05,3);
             elevator.metadata = {
                 isRaised:false
@@ -63,10 +64,8 @@ class App {
             elevatorButton.position = new Vector3(3,0,3);   
             elevatorButton.setParent(elevator);
 
-            const buttonSwitchOn = () => {
-                let buttonPressedMat = new StandardMaterial("buttonPressedMat", scene);
-                buttonPressedMat.diffuseColor = new Color3(0,1,0);
-                elevatorButton.material = buttonPressedMat;
+            const buttonSwitchOn = (button) => {
+                button.material = scene.getMaterialByName("materialButtonPressed");
             };
 
             /* raising the elevator */
@@ -85,7 +84,10 @@ class App {
             };
 
             /* set interaction */
-            let actionsOnCollision = [buttonSwitchOn, raiseElevator];
+            let actionsOnCollision = [
+                () => buttonSwitchOn(elevatorButton), 
+                () => raiseElevator(), 
+            ];
             const elevatorCollider = createCollider(elevatorButton, "elevatorButtonCollider", 1, 1, 1, new Vector3(3,0.5,3), actionsOnCollision);
             canInteract(elevatorCollider, person);
             

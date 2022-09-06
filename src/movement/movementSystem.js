@@ -1,4 +1,4 @@
-import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vector3, CombineAction, Action} from "@babylonjs/core";
+import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vector3, CombineAction, Action, StandardMaterial, Color3, Mesh} from "@babylonjs/core";
 
     let playerActionTarget = "";
     let scene;
@@ -37,14 +37,41 @@ import {ActionManager, ExecuteCodeAction, PredicateCondition, MeshBuilder, Vecto
     }
 
 
+    const showPrompt = (mesh) => {
+        let disc = scene.getMeshByName("buttonDisc");
+        if (disc === null){
+            disc = MeshBuilder.CreateDisc("buttonDisc", {radius:0.5}, scene);
+            let mat = new StandardMaterial("promptMat", scene);
+            mat.diffuseColor = new Color3(0,0,0);
+            disc.material = mat;
+            disc.billboardMode = Mesh.BILLBOARDMODE_ALL;    
+        } else {
+            disc.isVisible = true;
+        }
+
+        let meshPos = mesh.getAbsolutePosition();
+        let discOffset = new Vector3(0,2,0);
+        disc.position = meshPos.add(discOffset);
+    };
+
+    const hidePrompt = () => {
+        let disc = scene.getMeshByName("buttonDisc");
+        disc.isVisible = false;
+    };
 
     // call on any collider (mesh) that can be interacted with by (person) when pressing the action button
     // assumes only one action target is available at once
     // collider mesh must have the playerAction property in its metadata
     const canInteract = (mesh, person) => {
         mesh.actionManager = new ActionManager(scene);
-        mesh.actionManager.registerAction(new ExecuteCodeAction({trigger: ActionManager.OnIntersectionEnterTrigger,parameter: person},() =>{playerActionTarget = mesh.name;}));
-        mesh.actionManager.registerAction(new ExecuteCodeAction({trigger: ActionManager.OnIntersectionExitTrigger,parameter: person}, () => {playerActionTarget = "";}));
+        mesh.actionManager.registerAction(new ExecuteCodeAction({trigger: ActionManager.OnIntersectionEnterTrigger,parameter: person},() =>{
+            playerActionTarget = mesh.name;
+            showPrompt(mesh);
+        }));
+        mesh.actionManager.registerAction(new ExecuteCodeAction({trigger: ActionManager.OnIntersectionExitTrigger,parameter: person}, () => {
+            playerActionTarget = "";
+            hidePrompt();
+        }));
     }
 
    
